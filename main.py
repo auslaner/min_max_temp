@@ -3,6 +3,7 @@ Determine minimum, maximum, and mean temperatures for each plant during
 the time period that the plant was monitored.
 """
 from datetime import datetime
+from statistics import mean
 
 from openpyxl import load_workbook
 from site_to_sheets import get_temp_sheet_name
@@ -102,6 +103,19 @@ def filter_temps_by_monitoring(temp_range, start_time, end_time):
     return monitored_temps
 
 
+def compute_from_temp_range(temp_range):
+    """
+    Return the minimum, maximum, and mean temperatures from the list
+    of temperatures.
+    :param temp_range: List of temperatures in degrees Centigrade.
+    :return: Minimum, maximum, and mean temperatures in degrees Centigrade.
+    """
+    minimum_temp = min(temp_range)
+    maximum_temp = max(temp_range)
+    mean_temp = round(mean(temp_range), 1)
+    return minimum_temp, maximum_temp, mean_temp
+
+
 def main():
     # Get the workbook from our file with the plant numbers and monitoring times
     output_wb = get_output_file()
@@ -137,6 +151,11 @@ def main():
 
         # Filter temp range by monitoring start and end times
         filtered_temp_range = filter_temps_by_monitoring(temp_range, start_time, end_time)
+
+        # Compute the min, max, and mean from our filtered list of temps
+        temp_min, temp_max, temp_mean = compute_from_temp_range(filtered_temp_range)
+
+        print(temp_min, temp_max, temp_mean)
 
 
 if __name__ == "__main__":
