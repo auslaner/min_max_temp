@@ -81,6 +81,27 @@ def get_end_time(plant_row, monitoring_date):
                     minute=plant_row[5].value.minute)
 
 
+def filter_temps_by_monitoring(temp_range, start_time, end_time):
+    """
+    Return a list of temperatures that were recorded only within the
+    monitored period.
+    :param temp_range: Cell range containing datetimes and recorded
+    temperatures in degrees Centigrade.
+    :param start_time: Datetime when monitoring began.
+    :param end_time: Datetime when monitoring ended.
+    :return: List of temperatures during monitoring period.
+    """
+    monitored_temps = []
+    for row in temp_range:
+        # Check if the datetime in the row's first column is in between
+        # the start and end monitoring time
+        temp_date = datetime.strptime(row[0].value, '%Y-%m-%d %H:%M:%S')
+        if start_time <= temp_date <= end_time:
+            monitored_temps.append(row[1].value)
+
+    return monitored_temps
+
+
 def main():
     # Get the workbook from our file with the plant numbers and monitoring times
     output_wb = get_output_file()
@@ -110,6 +131,12 @@ def main():
 
         # Get the actual worksheet of temp data now that we have the name
         temp_sheet = temp_wb[temp_sheet_name]
+
+        # Get all of the datetimes and temperatures from the sheet
+        temp_range = temp_sheet['B27:C1440']
+
+        # Filter temp range by monitoring start and end times
+        filtered_temp_range = filter_temps_by_monitoring(temp_range, start_time, end_time)
 
 
 if __name__ == "__main__":
