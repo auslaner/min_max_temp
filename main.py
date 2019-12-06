@@ -30,7 +30,7 @@ def get_next_plant(plants_ws):
     :param plants_ws: Openpyxl worksheet containing monitored plant info.
     :return: Openpyxl row.
     """
-    for row in plants_ws.iter_rows(min_row=3, max_row=43, max_col=9):
+    for row in plants_ws.iter_rows(min_row=3, max_row=243, max_col=9):
         yield row
 
 
@@ -97,9 +97,13 @@ def filter_temps_by_monitoring(temp_range, start_time, end_time):
     """
     monitored_temps = []
     for row in temp_range:
-        # Check if the datetime in the row's first column is in between
-        # the start and end monitoring time
-        temp_date = datetime.strptime(row[0].value, '%Y-%m-%d %H:%M:%S')
+        try:
+            # Check if the datetime in the row's first column is in between
+            # the start and end monitoring time
+            temp_date = datetime.strptime(row[0].value, '%Y-%m-%d %H:%M:%S')
+        except TypeError:
+            # We're parsing a sheet that has fewer than 1440 rows of temp data
+            break
         if start_time - timedelta(minutes=15) <= temp_date <= end_time + timedelta(minutes=15):
             monitored_temps.append(row[1].value)
 
@@ -117,6 +121,25 @@ def compute_from_temp_range(temp_range):
     maximum_temp = max(temp_range)
     mean_temp = round(mean(temp_range), 1)
     return minimum_temp, maximum_temp, mean_temp
+
+
+def save_temp_stats(plant_row, temp_min, temp_max, temp_mean):
+    """
+    Save the temperatures stats back to the plant workbook
+    :param plant_row: Openpyxl describing a monitored plant.
+    :param temp_min: Minimum temperature in degrees Centigrade.
+    :param temp_max: Maximum temperature in degrees Centigrade.
+    :param temp_mean: Mean temperature in degrees Centigrade.
+    :return: None.
+    """
+    # Save min temp to 7th column
+    plant_row[6].value = temp_min
+
+    # Save max temp to 8th column
+    plant_row[7].value = temp_max
+
+    # Save mean temp to 9th column
+    plant_row[8].value = temp_mean
 
 
 def main():
@@ -150,7 +173,7 @@ def main():
         temp_sheet = temp_wb[temp_sheet_name]
 
         # Get all of the datetimes and temperatures from the sheet
-        temp_range = temp_sheet['B27:C1440']
+        temp_range = temp_sheet['B27:C1440']  # Note that 1440 is chosen because it is the highest row count among sites
 
         # Filter temp range by monitoring start and end times
         filtered_temp_range = filter_temps_by_monitoring(temp_range, start_time, end_time)
@@ -158,7 +181,11 @@ def main():
         # Compute the min, max, and mean from our filtered list of temps
         temp_min, temp_max, temp_mean = compute_from_temp_range(filtered_temp_range)
 
-        print(temp_min, temp_max, temp_mean)
+        # Save temp vales to output worksheet
+        save_temp_stats(plant_row, temp_min, temp_max, temp_mean)
+
+    # Save the worksheet with the new temperature stats added
+    output_wb.save('PENGRA_monitored_temps.xlsx')
 
 
 if __name__ == "__main__":
