@@ -2,7 +2,7 @@
 Determine minimum, maximum, and mean temperatures for each plant during
 the time period that the plant was monitored.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from statistics import mean
 
 from openpyxl import load_workbook
@@ -85,7 +85,10 @@ def get_end_time(plant_row, monitoring_date):
 def filter_temps_by_monitoring(temp_range, start_time, end_time):
     """
     Return a list of temperatures that were recorded only within the
-    monitored period.
+    monitored period. Note that the considered monitored period is
+    expanded to 15 minutes before and after the given start and end
+    times so as to include recorded temperatures close to when
+    monitoring began and ended.
     :param temp_range: Cell range containing datetimes and recorded
     temperatures in degrees Centigrade.
     :param start_time: Datetime when monitoring began.
@@ -97,7 +100,7 @@ def filter_temps_by_monitoring(temp_range, start_time, end_time):
         # Check if the datetime in the row's first column is in between
         # the start and end monitoring time
         temp_date = datetime.strptime(row[0].value, '%Y-%m-%d %H:%M:%S')
-        if start_time <= temp_date <= end_time:
+        if start_time - timedelta(minutes=15) <= temp_date <= end_time + timedelta(minutes=15):
             monitored_temps.append(row[1].value)
 
     return monitored_temps
